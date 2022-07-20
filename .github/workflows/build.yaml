@@ -32,7 +32,8 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_REPO }}
           tags: |
-            type=sha, latest
+            type=sha
+            type=raw,value=latest
       
       - name: Build and Push
         uses: docker/build-push-action@v2
