@@ -8,15 +8,17 @@ const app = express()
 const server = http.createServer(app)
 const port = process.env.PORT || 3000
 
-const dir = __dirname
 let rootDir: string;
 
-if (existsSync(`${dir}/node_modules`)) {
-  rootDir = dir;
-} else if (existsSync(`${path.dirname(dir)}/node_modules`)) {
-  rootDir = path.dirname(dir);
+if (existsSync(`${__dirname}/node_modules`)) {
+  rootDir = __dirname;
+} else if (existsSync(`${path.normalize(`${__dirname}/../`)}node_modules`)) {
+  rootDir = path.normalize(`${__dirname}/../`);
 } else {
   throw new Error('Cannot resolve rootDir');
+}
+if (rootDir.substring(rootDir.length - 1) === '/') {
+  rootDir = rootDir.substring(0, rootDir.length - 1)
 }
 
 app.use((req: Request, _res: Response, next: () => void) => {
