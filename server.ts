@@ -8,6 +8,17 @@ const app = express()
 const server = http.createServer(app)
 const port = process.env.PORT || 3000
 
+const dir = __dirname
+let rootDir: string;
+
+if (existsSync(`${dir}/node_modules`)) {
+  rootDir = dir;
+} else if (existsSync(`${path.dirname(dir)}/node_modules`)) {
+  rootDir = path.dirname(dir);
+} else {
+  throw new Error('Cannot resolve rootDir');
+}
+
 app.use((req: Request, _res: Response, next: () => void) => {
   const contentType = req.headers['content-type'] || ''
   const mime = contentType.split(';')[0]
@@ -67,12 +78,12 @@ app.post('/minify', (req: Request, res: Response) => {
     cmdArgs.push(`--${key}`)
   })
 
-  const tempFile = `${__dirname}/.data/temp/${Date.now()}.js`
-  const outputFile = `${__dirname}/.data/temp/${Date.now()}-minified.js`
+  const tempFile = `${rootDir}/.data/temp/${Date.now()}.js`
+  const outputFile = `${rootDir}/.data/temp/${Date.now()}-minified.js`
 
-  const dir = path.dirname(tempFile)
-  if (!existsSync(dir)) {
-    mkdirSync(dir, {
+  const tempDir = path.dirname(tempFile)
+  if (!existsSync(tempDir)) {
+    mkdirSync(tempDir, {
       recursive: true,
     })
   }
