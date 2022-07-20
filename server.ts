@@ -1,25 +1,14 @@
 import express, {Request, Response} from 'express'
 import http from 'http'
-import path from 'path'
-import {writeFileSync, mkdirSync, unlinkSync, existsSync, readFileSync} from 'fs'
-import {execSync} from 'child_process'
+import bodyParser from 'body-parser'
+import prettier from 'prettier'
+import UglifyJS from 'uglify-js'
 
 const app = express()
 const server = http.createServer(app)
 const port = process.env.PORT || 3000
 
-let rootDir: string;
-
-if (existsSync(`${__dirname}/node_modules`)) {
-  rootDir = __dirname;
-} else if (existsSync(`${path.normalize(`${__dirname}/../`)}node_modules`)) {
-  rootDir = path.normalize(`${__dirname}/../`);
-} else {
-  throw new Error('Cannot resolve rootDir');
-}
-if (rootDir.substring(rootDir.length - 1) === '/') {
-  rootDir = rootDir.substring(0, rootDir.length - 1)
-}
+app.use(bodyParser.json())
 
 app.use((req: Request, _res: Response, next: () => void) => {
   const contentType = req.headers['content-type'] || ''
@@ -43,13 +32,9 @@ app.use((req: Request, _res: Response, next: () => void) => {
   })
 })
 
-app.get('/', (req: Request, res: Response) => {
+app.get('/', (_req: Request, res: Response) => {
   res.send('Hello world!')
 })
-
-function escapeCmdArg(arg: string): string {
-  return `'` + arg.replace(/'/g, `'"'`) + `'`
-}
 
 app.post('/minify', (req: Request, res: Response) => {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -59,56 +44,41 @@ app.post('/minify', (req: Request, res: Response) => {
     return res.status(400).send('')
   }
 
-  const uglify = path.join(rootDir, 'node_modules', '.bin', 'uglifyjs')
-  const options = {
-    compress: true,
+  const result = UglifyJS.minify(rawBody, {
+    compress: {
+      drop_console: true,
+    },
     mangle: true,
-    comments: false,
-    'keep-fargs': false,
-    'keep-fnames': false,
-  }
-
-  const cmdArgs: string[] = []
-  Object.keys(options).forEach((key) => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const value = options[key]
-    if (!value) {
-      return
-    }
-
-    cmdArgs.push(`--${key}`)
+    keep_fnames: false,
   })
-
-  const tempFile = path.join(rootDir, '.data', 'temp', `${Date.now()}.js`)
-  const outputFile = path.join(rootDir, '.data', 'temp', `${Date.now()}-minified.js`)
-
-  const tempDir = path.dirname(tempFile)
-  if (!existsSync(tempDir)) {
-    mkdirSync(tempDir, {
-      recursive: true,
-    })
+  if (result.error) {
+    return res.status(500).send(result.error)
   }
 
-  writeFileSync(tempFile, rawBody, 'utf-8')
+  return res.setHeader('Content-Type', 'text/plain').send(result.code)
+})
 
-  console.log(
-    'run minified command',
-    `${uglify} ${escapeCmdArg(tempFile)} -o ${escapeCmdArg(outputFile)} ${cmdArgs.join(' ')}`
-  )
-  execSync(`${uglify} ${escapeCmdArg(tempFile)} -o ${escapeCmdArg(outputFile)} ${cmdArgs.join(' ')}`)
-
-  const minified = readFileSync(outputFile, 'utf-8')
-
-  unlinkSync(tempFile)
-  unlinkSync(outputFile)
-
-  if (minified.length === 0) {
-    // minified error
+app.post('/prettier', (req: Request, res: Response) => {
+  const payload = req.body
+  if (typeof payload !== 'object') {
     return res.status(400).send('')
   }
 
-  return res.setHeader('Content-Type', 'text/plain').send(minified)
+  const prettierOptions = Object.assign({
+    trailingComma: "es5",
+    tabWidth: 4,
+    semi: true,
+    singleQuote: true,
+    printWidth: 120,
+    bracketSpacing: true,
+    endOfLine: "lf",
+  }, payload.options, {
+    parser: 'babel'
+  })
+
+  const output = prettier.format(payload.contents, prettierOptions)
+
+  return res.status(200).setHeader('Content-Type', 'text/plain').send(output)
 })
 
 server.listen(port, () => {
