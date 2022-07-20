@@ -30,7 +30,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: ${{ DOCKERHUB_REPO }}
+          images: ${{ secrets.DOCKERHUB_REPO }}
           tags: |
             type=sha
       
