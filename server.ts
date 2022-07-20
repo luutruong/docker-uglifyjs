@@ -59,7 +59,7 @@ app.post('/minify', (req: Request, res: Response) => {
     return res.status(400).send('')
   }
 
-  const uglify = path.join(__dirname, 'node_modules', '.bin', 'uglifyjs')
+  const uglify = path.join(rootDir, 'node_modules', '.bin', 'uglifyjs')
   const options = {
     compress: true,
     mangle: true,
@@ -80,8 +80,8 @@ app.post('/minify', (req: Request, res: Response) => {
     cmdArgs.push(`--${key}`)
   })
 
-  const tempFile = `${rootDir}/.data/temp/${Date.now()}.js`
-  const outputFile = `${rootDir}/.data/temp/${Date.now()}-minified.js`
+  const tempFile = path.join(rootDir, '.data', 'temp', `${Date.now()}.js`)
+  const outputFile = path.join(rootDir, '.data', 'temp', `${Date.now()}-minified.js`)
 
   const tempDir = path.dirname(tempFile)
   if (!existsSync(tempDir)) {
@@ -108,7 +108,7 @@ app.post('/minify', (req: Request, res: Response) => {
     return res.status(400).send('')
   }
 
-  return res.send(minified)
+  return res.setHeader('Content-Type', 'text/plain').send(minified)
 })
 
 server.listen(port, () => {
