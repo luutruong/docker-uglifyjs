@@ -8,7 +8,10 @@ const app = express()
 const server = http.createServer(app)
 const port = process.env.PORT || 3000
 
-app.use(bodyParser.json())
+app.use(bodyParser.json({
+  strict: true,
+  limit: '2048kb', // 2mb
+}))
 
 app.use((req: Request, _res: Response, next: () => void) => {
   const contentType = req.headers['content-type'] || ''
