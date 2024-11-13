@@ -10,46 +10,28 @@ const port = process.env.PORT || 3000
 
 app.use(bodyParser.json({
   strict: true,
-  limit: '2048kb', // 2mb
+  limit: process.env.UGLIFYJS_BODY_LIMIT || '2048kb', // 2mb
 }))
 
-app.use((req: Request, _res: Response, next: () => void) => {
-  const contentType = req.headers['content-type'] || ''
-  const mime = contentType.split(';')[0]
-
-  if (mime !== 'text/plain') {
-    return next()
-  }
-
-  let data = ''
-  req.setEncoding('utf-8')
-  req.on('data', (chunk) => {
-    data += chunk
-  })
-
-  req.on('end', () => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    req.rawBody = data
-    next()
-  })
-})
-
 app.get('/', (_req: Request, res: Response) => {
-  res.send('Hello world!')
+  res.json({
+    status: 'ok',
+    message: 'Hi'
+  })
 })
 
 app.post('/minify', (req: Request, res: Response) => {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  const rawBody = req.rawBody
-  if (!rawBody) {
-    return res.status(400).send('')
+  if (req.headers['content-type'] !== 'application/json') {
+    return res.status(400).send('Invalid body data');
   }
 
-  const result = UglifyJS.minify(rawBody, {
+  if (typeof req.body !== 'object') {
+    return res.status(400).send('Invalid body data');
+  }
+
+  const result = UglifyJS.minify(req.body.code, {
     compress: {
-      drop_console: true,
+      drop_console: req.body.options?.drop_console || true,
     },
     mangle: true,
     keep_fnames: false,
