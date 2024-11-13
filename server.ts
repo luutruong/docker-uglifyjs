@@ -31,7 +31,7 @@ app.post('/minify', (req: Request, res: Response) => {
 
   const result = UglifyJS.minify(req.body.code, {
     compress: {
-      drop_console: req.body.options?.drop_console || true,
+      drop_console: req.body.options?.drop_console ?? true,
     },
     mangle: true,
     keep_fnames: false,
