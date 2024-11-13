@@ -43,7 +43,7 @@ app.post('/minify', (req: Request, res: Response) => {
   return res.setHeader('Content-Type', 'text/plain').send(result.code)
 })
 
-app.post('/prettier', (req: Request, res: Response) => {
+app.post('/prettier', async (req: Request, res: Response) => {
   const payload = req.body
   if (typeof payload !== 'object') {
     return res.status(400).send('')
@@ -61,7 +61,7 @@ app.post('/prettier', (req: Request, res: Response) => {
     parser: 'babel'
   })
 
-  const output = prettier.format(payload.contents, prettierOptions)
+  const output = await prettier.format(payload.contents, prettierOptions)
 
   return res.status(200).setHeader('Content-Type', 'text/plain').send(output)
 })
